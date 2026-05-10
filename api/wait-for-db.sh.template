@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "Esperando a PostgreSQL..."
+
+until pg_isready -h POSTGRES_IP -p 5432 -U gamestore
+do
+  echo "Postgres no está listo..."
+  sleep 2
+done
+
+echo "Postgres listo!"
+
+flask run --host=0.0.0.0
