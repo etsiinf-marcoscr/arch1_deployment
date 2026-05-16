@@ -483,5 +483,5 @@ swagger_task   = wait_for_task_running("gamestore-cluster", "swagger")
 swagger_pub_ip = get_task_public_ip(swagger_task)
 
 print("\n=== DESPLIEGUE TERMINADO ===")
-print(f"API:     http://{alb_dns}/api")
+print(f"API:     http://{alb_dns}/api/[operation] (ej: http://{alb_dns}/api/game)")
 print(f"Swagger: http://{swagger_pub_ip}:8080")

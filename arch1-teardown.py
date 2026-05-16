@@ -107,8 +107,7 @@ for family in ["postgres", "api", "swagger"]:
 
 
 # ===========================================================================
-# 5. ALB — listener, ALB y luego target group
-#    Orden importante: borrar listener y ALB antes que el target group
+# 5. ALB — listener, ALB, y target groups (por tag + por nombre)
 # ===========================================================================
 
 title("5. ALB")
@@ -126,35 +125,57 @@ albs_tagged = [
 for alb in albs_tagged:
     alb_arn = alb["LoadBalancerArn"]
 
-    # 1. Listeners primero
     listeners = elbv2.describe_listeners(LoadBalancerArn=alb_arn)["Listeners"]
     for l in listeners:
         elbv2.delete_listener(ListenerArn=l["ListenerArn"])
         ok(f"Listener eliminado")
 
-    # 2. Recoger ARNs de target groups ANTES de borrar el ALB
-    tg_arns = [
-        tg["TargetGroupArn"]
-        for tg in elbv2.describe_target_groups(LoadBalancerArn=alb_arn)["TargetGroups"]
-    ]
-
-    # 3. Borrar el ALB y esperar
     elbv2.delete_load_balancer(LoadBalancerArn=alb_arn)
     ok(f"ALB {alb['LoadBalancerName']} eliminado, esperando...")
     waiter = elbv2.get_waiter("load_balancers_deleted")
     waiter.wait(LoadBalancerArns=[alb_arn])
     ok("ALB eliminado completamente")
 
-    # 4. Borrar target groups DESPUÉS de que el ALB haya desaparecido
-    for tg_arn in tg_arns:
+if not albs_tagged:
+    skip("ALB")
+
+# Target groups: buscar por tag Y por nombre conocido para capturar huérfanos
+print("\n  Buscando target groups (asociados y huérfanos)...")
+
+all_tgs = elbv2.describe_target_groups()["TargetGroups"]
+
+tgs_to_delete = []
+for tg in all_tgs:
+    tg_arn = tg["TargetGroupArn"]
+    # Por nombre conocido
+    if tg["TargetGroupName"] in ("api-target",):
+        tgs_to_delete.append(tg_arn)
+        continue
+    # Por tag
+    try:
+        tags = elbv2.describe_tags(ResourceArns=[tg_arn])["TagDescriptions"][0]["Tags"]
+        if any(t["Key"] == TAG_KEY and t["Value"] == TAG_VALUE for t in tags):
+            tgs_to_delete.append(tg_arn)
+    except Exception:
+        pass
+
+for tg_arn in tgs_to_delete:
+    for intento in range(6):
         try:
             elbv2.delete_target_group(TargetGroupArn=tg_arn)
             ok(f"Target group eliminado: {tg_arn.split('/')[-2]}")
+            break
+        except elbv2.exceptions.ResourceInUseException:
+            print(f"    En uso, esperando 5s... (intento {intento+1}/6)")
+            time.sleep(5)
         except Exception as e:
-            print(f"  ! Error borrando target group: {e}")
+            print(f"    Error: {e}")
+            break
+    else:
+        print(f"  ! No se pudo borrar el target group tras varios intentos")
 
-if not albs_tagged:
-    skip("ALB")
+if not tgs_to_delete:
+    skip("Target groups")
 
 
 # ===========================================================================
@@ -176,14 +197,19 @@ if ep_ids:
 
     print("  Esperando que los endpoints se eliminen...")
     while True:
-        # Una sola llamada describe, sin re-filtrar por tag (ya tenemos los IDs)
-        still_active = ec2.describe_vpc_endpoints(
-            VpcEndpointIds=ep_ids,
-            Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleting", "pending", "available"]}]
-        )["VpcEndpoints"]
-        if not still_active:
-            break
-        print(f"    Quedan {len(still_active)} endpoint(s) activos, esperando 10s...")
+        try:
+            still_active = ec2.describe_vpc_endpoints(
+                VpcEndpointIds=ep_ids,
+                Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleting", "pending", "available"]}]
+            )["VpcEndpoints"]
+            if not still_active:
+                break
+            print(f"    Quedan {len(still_active)} endpoint(s) activos, esperando 10s...")
+        except ec2.exceptions.ClientError as e:
+            if "InvalidVpcEndpointId.NotFound" in str(e):
+                # Todos los endpoints han desaparecido — borrado completado
+                break
+            raise
         time.sleep(10)
     ok("Todos los endpoints eliminados")
 else:
@@ -200,6 +226,32 @@ vpcs = ec2.describe_vpcs(Filters=TAG_FILTER)["Vpcs"]
 vpc_id = vpcs[0]["VpcId"] if vpcs else None
 
 if vpc_id:
+    # Liberar cualquier IP pública/EIP mapeada en la VPC antes de desconectar el IGW
+    enis = ec2.describe_network_interfaces(
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+    )["NetworkInterfaces"]
+
+    for eni in enis:
+        assoc = eni.get("Association")
+        if assoc:
+            # IP pública de Fargate (no es EIP, no tiene AllocationId)
+            # Solo hay que desasociarla, no liberarla
+            allocation_id = assoc.get("AllocationId")
+            association_id = assoc.get("AssociationId")
+            if association_id:
+                try:
+                    ec2.disassociate_address(AssociationId=association_id)
+                    print(f"    IP pública desasociada de ENI {eni['NetworkInterfaceId']}")
+                except Exception as e:
+                    print(f"    No se pudo desasociar IP: {e}")
+            # Si tiene AllocationId es una EIP — liberar también
+            if allocation_id:
+                try:
+                    ec2.release_address(AllocationId=allocation_id)
+                    print(f"    EIP {allocation_id} liberada")
+                except Exception as e:
+                    print(f"    No se pudo liberar EIP: {e}")
+
     igws = ec2.describe_internet_gateways(
         Filters=[{"Name": "attachment.vpc-id", "Values": [vpc_id]}]
     )["InternetGateways"]
@@ -223,8 +275,38 @@ title("8. Subnets")
 if vpc_id:
     subnets = ec2.describe_subnets(Filters=TAG_FILTER)["Subnets"]
     for subnet in subnets:
-        ec2.delete_subnet(SubnetId=subnet["SubnetId"])
-        ok(f"Subnet {subnet['SubnetId']} eliminada")
+        for intento in range(12):  # hasta 60 segundos de espera por subnet
+            try:
+                ec2.delete_subnet(SubnetId=subnet["SubnetId"])
+                ok(f"Subnet {subnet['SubnetId']} eliminada")
+                break
+            except ec2.exceptions.ClientError as e:
+                if "DependencyViolation" in str(e):
+                    # Buscar ENIs huérfanos en esta subnet y eliminarlos
+                    enis = ec2.describe_network_interfaces(
+                        Filters=[{"Name": "subnet-id", "Values": [subnet["SubnetId"]]}]
+                    )["NetworkInterfaces"]
+                    if enis:
+                        for eni in enis:
+                            eni_id = eni["NetworkInterfaceId"]
+                            status = eni["Status"]
+                            print(f"    ENI huérfano detectado: {eni_id} (estado: {status})")
+                            # Solo se pueden borrar ENIs en estado 'available'
+                            if status == "available":
+                                try:
+                                    ec2.delete_network_interface(NetworkInterfaceId=eni_id)
+                                    print(f"    ENI {eni_id} eliminado")
+                                except Exception as e2:
+                                    print(f"    No se pudo borrar ENI: {e2}")
+                            else:
+                                print(f"    ENI {eni_id} no está disponible aún, esperando...")
+                    else:
+                        print(f"    Sin ENIs visibles, esperando liberación... (intento {intento+1}/12)")
+                    time.sleep(5)
+                else:
+                    raise
+        else:
+            print(f"  ! No se pudo borrar subnet {subnet['SubnetId']} tras varios intentos")
     if not subnets:
         skip("Subnets")
 else:
