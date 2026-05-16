@@ -9,13 +9,18 @@ import subprocess
 
 REGION = "us-east-1"
 
-ec2  = boto3.client("ec2",  region_name=REGION)
-ecs  = boto3.client("ecs",  region_name=REGION)
+ec2   = boto3.client("ec2",   region_name=REGION)
+ecs   = boto3.client("ecs",   region_name=REGION)
 elbv2 = boto3.client("elbv2", region_name=REGION)
-sts  = boto3.client("sts")
+sts   = boto3.client("sts")
 
-ACCOUNT = sts.get_caller_identity()["Account"]
+ACCOUNT  = sts.get_caller_identity()["Account"]
 ECR_ROOT = f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com"
+
+# Tag usado en todos los recursos para poder identificarlos fácilmente y borrarlos luego con el script de teardown.
+TAGS     = [{"Key": "Stack", "Value": "arch1"}]
+TAGS_ECS = [{"key": "Stack", "value": "arch1"}]
+TAG_SPECS = lambda resource_type: [{"ResourceType": resource_type, "Tags": TAGS}]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,23 +45,23 @@ def ecr_login():
 def build_push_postgres():
     repo = f"{ECR_ROOT}/gamestore-postgres:latest"
     print("Build/push postgres")
-    subprocess.run("docker pull postgres:15",                          shell=True, check=True)
-    subprocess.run(f"docker tag postgres:15 {repo}",                  shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                             shell=True, check=True)
+    subprocess.run("docker pull postgres:15",                 shell=True, check=True)
+    subprocess.run(f"docker tag postgres:15 {repo}",          shell=True, check=True)
+    subprocess.run(f"docker push {repo}",                     shell=True, check=True)
 
 def build_push_api():
     repo = f"{ECR_ROOT}/gamestore-api:latest"
     print("Build/push API")
-    subprocess.run("docker build -t gamestore-api ./api",             shell=True, check=True)
-    subprocess.run(f"docker tag gamestore-api:latest {repo}",         shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                             shell=True, check=True)
+    subprocess.run("docker build -t gamestore-api ./api",     shell=True, check=True)
+    subprocess.run(f"docker tag gamestore-api:latest {repo}", shell=True, check=True)
+    subprocess.run(f"docker push {repo}",                     shell=True, check=True)
 
 def build_push_swagger():
     repo = f"{ECR_ROOT}/gamestore-swagger:latest"
     print("Build/push Swagger")
-    subprocess.run("docker build -t gamestore-swagger ./swagger",     shell=True, check=True)
-    subprocess.run(f"docker tag gamestore-swagger:latest {repo}",     shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                             shell=True, check=True)
+    subprocess.run("docker build -t gamestore-swagger ./swagger", shell=True, check=True)
+    subprocess.run(f"docker tag gamestore-swagger:latest {repo}", shell=True, check=True)
+    subprocess.run(f"docker push {repo}",                         shell=True, check=True)
 
 def wait_for_task_running(cluster, service):
     print(f"Esperando que el task '{service}' esté RUNNING...")
@@ -97,7 +102,10 @@ ecr = boto3.client("ecr", region_name=REGION)
 
 for repo_name in ["gamestore-postgres", "gamestore-api", "gamestore-swagger"]:
     try:
-        ecr.create_repository(repositoryName=repo_name)
+        ecr.create_repository(
+            repositoryName=repo_name,
+            tags=TAGS
+        )
         print(f"Repositorio creado: {repo_name}")
     except ecr.exceptions.RepositoryAlreadyExistsException:
         print(f"Repositorio ya existe: {repo_name}")
@@ -111,14 +119,16 @@ build_push_postgres()
 # ===========================================================================
 
 print("\nCreando VPC")
-vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+vpc_id = ec2.create_vpc(
+    CidrBlock="10.0.0.0/16",
+    TagSpecifications=TAG_SPECS("vpc")
+)["Vpc"]["VpcId"]
 ec2.modify_vpc_attribute(VpcId=vpc_id, EnableDnsHostnames={"Value": True})
 ec2.modify_vpc_attribute(VpcId=vpc_id, EnableDnsSupport={"Value": True})
 print("VPC:", vpc_id)
 
 print("Creando subnets")
 
-# Obtener AZs disponibles en la región
 azs = ec2.describe_availability_zones(
     Filters=[{"Name": "state", "Values": ["available"]}]
 )["AvailabilityZones"]
@@ -126,26 +136,45 @@ azs = ec2.describe_availability_zones(
 az1 = azs[0]["ZoneName"]
 az2 = azs[1]["ZoneName"]
 
-public_subnet  = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24", AvailabilityZone=az1)["Subnet"]["SubnetId"]
-public_subnet2 = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.3.0/24", AvailabilityZone=az2)["Subnet"]["SubnetId"]
-private_subnet = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=az1)["Subnet"]["SubnetId"]
+public_subnet = ec2.create_subnet(
+    VpcId=vpc_id, CidrBlock="10.0.1.0/24", AvailabilityZone=az1,
+    TagSpecifications=TAG_SPECS("subnet")
+)["Subnet"]["SubnetId"]
+
+public_subnet2 = ec2.create_subnet(
+    VpcId=vpc_id, CidrBlock="10.0.3.0/24", AvailabilityZone=az2,
+    TagSpecifications=TAG_SPECS("subnet")
+)["Subnet"]["SubnetId"]
+
+private_subnet = ec2.create_subnet(
+    VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=az1,
+    TagSpecifications=TAG_SPECS("subnet")
+)["Subnet"]["SubnetId"]
 
 print(f"  public_subnet  → {az1}")
 print(f"  public_subnet2 → {az2}")
 print(f"  private_subnet → {az1}")
 
 print("Creando IGW")
-igw = ec2.create_internet_gateway()["InternetGateway"]["InternetGatewayId"]
+igw = ec2.create_internet_gateway(
+    TagSpecifications=TAG_SPECS("internet-gateway")
+)["InternetGateway"]["InternetGatewayId"]
 ec2.attach_internet_gateway(InternetGatewayId=igw, VpcId=vpc_id)
 
 print("Routing público")
-rt_public = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+rt_public = ec2.create_route_table(
+    VpcId=vpc_id,
+    TagSpecifications=TAG_SPECS("route-table")
+)["RouteTable"]["RouteTableId"]
 ec2.create_route(RouteTableId=rt_public, DestinationCidrBlock="0.0.0.0/0", GatewayId=igw)
 ec2.associate_route_table(SubnetId=public_subnet,  RouteTableId=rt_public)
 ec2.associate_route_table(SubnetId=public_subnet2, RouteTableId=rt_public)
 
 print("Routing privado")
-rt_private = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+rt_private = ec2.create_route_table(
+    VpcId=vpc_id,
+    TagSpecifications=TAG_SPECS("route-table")
+)["RouteTable"]["RouteTableId"]
 ec2.associate_route_table(SubnetId=private_subnet, RouteTableId=rt_private)
 
 
@@ -156,26 +185,28 @@ ec2.associate_route_table(SubnetId=private_subnet, RouteTableId=rt_private)
 print("Creando security groups")
 
 def make_sg(name, desc):
-    return ec2.create_security_group(GroupName=name, Description=desc, VpcId=vpc_id)["GroupId"]
+    return ec2.create_security_group(
+        GroupName=name,
+        Description=desc,
+        VpcId=vpc_id,
+        TagSpecifications=TAG_SPECS("security-group")
+    )["GroupId"]
 
 swagger_sg  = make_sg("swagger-sg",  "swagger")
 backend_sg  = make_sg("backend-sg",  "backend")
 alb_sg      = make_sg("alb-sg",      "alb")
 endpoint_sg = make_sg("endpoint-sg", "endpoint")
 
-# swagger: puerto 8080 público
 ec2.authorize_security_group_ingress(GroupId=swagger_sg, IpPermissions=[{
     "IpProtocol": "tcp", "FromPort": 8080, "ToPort": 8080,
     "IpRanges": [{"CidrIp": "0.0.0.0/0"}]
 }])
 
-# alb: puerto 80 público
 ec2.authorize_security_group_ingress(GroupId=alb_sg, IpPermissions=[{
     "IpProtocol": "tcp", "FromPort": 80, "ToPort": 80,
     "IpRanges": [{"CidrIp": "0.0.0.0/0"}]
 }])
 
-# backend: 5000 desde alb-sg, 5432 desde backend-sg (postgres)
 ec2.authorize_security_group_ingress(GroupId=backend_sg, IpPermissions=[
     {"IpProtocol": "tcp", "FromPort": 5000, "ToPort": 5000,
      "UserIdGroupPairs": [{"GroupId": alb_sg}]},
@@ -183,7 +214,6 @@ ec2.authorize_security_group_ingress(GroupId=backend_sg, IpPermissions=[
      "UserIdGroupPairs": [{"GroupId": backend_sg}]}
 ])
 
-# endpoint: 443 desde backend-sg (para que los tasks privados alcancen ECR/logs)
 ec2.authorize_security_group_ingress(GroupId=endpoint_sg, IpPermissions=[{
     "IpProtocol": "tcp", "FromPort": 443, "ToPort": 443,
     "UserIdGroupPairs": [
@@ -195,19 +225,25 @@ ec2.authorize_security_group_ingress(GroupId=endpoint_sg, IpPermissions=[{
 
 # ===========================================================================
 # 4. VPC Endpoints
+# Los endpoints se taguean con create_tags tras crearlos porque su API
+# no acepta TagSpecifications de forma consistente en todas las versiones
 # ===========================================================================
 
 print("Creando VPC endpoints")
 
-# Gateway S3 (para que Fargate descargue capas de imagen)
-ec2.create_vpc_endpoint(
+def create_tagged_endpoint(**kwargs):
+    ep_id = ec2.create_vpc_endpoint(**kwargs)["VpcEndpoint"]["VpcEndpointId"]
+    ec2.create_tags(Resources=[ep_id], Tags=TAGS)
+    return ep_id
+
+create_tagged_endpoint(
     VpcId=vpc_id,
     ServiceName=f"com.amazonaws.{REGION}.s3",
     VpcEndpointType="Gateway",
     RouteTableIds=[rt_private]
 )
 
-ec2.create_vpc_endpoint(
+create_tagged_endpoint(
     VpcId=vpc_id,
     ServiceName=f"com.amazonaws.{REGION}.ecr.api",
     VpcEndpointType="Interface",
@@ -216,7 +252,7 @@ ec2.create_vpc_endpoint(
     PrivateDnsEnabled=True
 )
 
-ec2.create_vpc_endpoint(
+create_tagged_endpoint(
     VpcId=vpc_id,
     ServiceName=f"com.amazonaws.{REGION}.ecr.dkr",
     VpcEndpointType="Interface",
@@ -225,7 +261,7 @@ ec2.create_vpc_endpoint(
     PrivateDnsEnabled=True
 )
 
-ec2.create_vpc_endpoint(
+create_tagged_endpoint(
     VpcId=vpc_id,
     ServiceName=f"com.amazonaws.{REGION}.logs",
     VpcEndpointType="Interface",
@@ -233,6 +269,7 @@ ec2.create_vpc_endpoint(
     SecurityGroupIds=[endpoint_sg],
     PrivateDnsEnabled=True
 )
+
 
 # ===========================================================================
 # 4.5 IAM — execution role (usando LabRole del entorno de laboratorio)
@@ -242,12 +279,16 @@ iam = boto3.client("iam")
 execution_role_arn = iam.get_role(RoleName="LabRole")["Role"]["Arn"]
 print("Usando execution role:", execution_role_arn)
 
+
 # ===========================================================================
 # 5. Cluster ECS + servicio Postgres
 # ===========================================================================
 
 print("Creando cluster ECS")
-ecs.create_cluster(clusterName="gamestore-cluster")
+ecs.create_cluster(
+    clusterName="gamestore-cluster",
+    tags=TAGS_ECS
+)
 
 print("Registrando task postgres")
 ecs.register_task_definition(
@@ -256,6 +297,7 @@ ecs.register_task_definition(
     networkMode="awsvpc",
     requiresCompatibilities=["FARGATE"],
     cpu="256", memory="512",
+    tags=TAGS_ECS,
     containerDefinitions=[{
         "name": "postgres",
         "image": f"{ECR_ROOT}/gamestore-postgres:latest",
@@ -275,6 +317,7 @@ ecs.create_service(
     taskDefinition="postgres",
     desiredCount=1,
     launchType="FARGATE",
+    tags=TAGS_ECS,
     networkConfiguration={"awsvpcConfiguration": {
         "subnets": [private_subnet],
         "securityGroups": [backend_sg],
@@ -282,7 +325,6 @@ ecs.create_service(
     }}
 )
 
-# Espera activa hasta que el task esté RUNNING
 postgres_task = wait_for_task_running("gamestore-cluster", "postgres")
 postgres_ip   = get_task_private_ip(postgres_task)
 print("IP privada postgres:", postgres_ip)
@@ -308,6 +350,7 @@ ecs.register_task_definition(
     networkMode="awsvpc",
     requiresCompatibilities=["FARGATE"],
     cpu="256", memory="512",
+    tags=TAGS_ECS,
     containerDefinitions=[{
         "name": "api",
         "image": f"{ECR_ROOT}/gamestore-api:latest",
@@ -331,7 +374,8 @@ alb_resp = elbv2.create_load_balancer(
     SecurityGroups=[alb_sg],
     Scheme="internet-facing",
     Type="application",
-    IpAddressType="ipv4"
+    IpAddressType="ipv4",
+    Tags=TAGS
 )
 alb_arn = alb_resp["LoadBalancers"][0]["LoadBalancerArn"]
 alb_dns = alb_resp["LoadBalancers"][0]["DNSName"]
@@ -343,13 +387,15 @@ tg_arn = elbv2.create_target_group(
     Port=5000,
     VpcId=vpc_id,
     TargetType="ip",
-    HealthCheckPath="/api/game"
+    HealthCheckPath="/api/game",
+    Tags=TAGS
 )["TargetGroups"][0]["TargetGroupArn"]
 
 elbv2.create_listener(
     LoadBalancerArn=alb_arn,
     Protocol="HTTP", Port=80,
-    DefaultActions=[{"Type": "forward", "TargetGroupArn": tg_arn}]
+    DefaultActions=[{"Type": "forward", "TargetGroupArn": tg_arn}],
+    Tags=TAGS
 )
 
 print("Creando servicio API")
@@ -359,6 +405,7 @@ ecs.create_service(
     taskDefinition="api",
     desiredCount=1,
     launchType="FARGATE",
+    tags=TAGS_ECS,
     loadBalancers=[{
         "targetGroupArn": tg_arn,
         "containerName": "api",
@@ -398,6 +445,7 @@ ecs.register_task_definition(
     networkMode="awsvpc",
     requiresCompatibilities=["FARGATE"],
     cpu="256", memory="512",
+    tags=TAGS_ECS,
     containerDefinitions=[{
         "name": "swagger",
         "image": f"{ECR_ROOT}/gamestore-swagger:latest",
@@ -412,6 +460,7 @@ ecs.create_service(
     taskDefinition="swagger",
     desiredCount=1,
     launchType="FARGATE",
+    tags=TAGS_ECS,
     networkConfiguration={"awsvpcConfiguration": {
         "subnets": [public_subnet],
         "securityGroups": [swagger_sg],
@@ -427,7 +476,7 @@ ecs.update_service(
 
 
 # ===========================================================================
-# Resumen final
+# Resumen final del despliegue
 # ===========================================================================
 
 swagger_task   = wait_for_task_running("gamestore-cluster", "swagger")
