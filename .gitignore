@@ -3,3 +3,13 @@
 
 # Ignore the __pycache__ directories
 __pycache__/
+
+# Ignore tocloud directory
+tocloud/
+
+# Ignore docs directory
+docs/
+
+# Ignore sh and yaml tests
+*.sh
+*.yaml

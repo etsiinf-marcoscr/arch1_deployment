@@ -32,15 +32,28 @@ def skip(msg):
 
 
 # ===========================================================================
-# 1. Servicios ECS — reducir a 0 y eliminar
+# 1. ECR — borrar repositorios al principio (sin dependencias)
 # ===========================================================================
 
-title("1. Servicios ECS")
+title("1. Repositorios ECR")
+
+for repo_name in ["gamestore-postgres", "gamestore-api", "gamestore-swagger"]:
+    try:
+        ecr.delete_repository(repositoryName=repo_name, force=True)
+        ok(f"Repositorio ECR {repo_name} eliminado")
+    except ecr.exceptions.RepositoryNotFoundException:
+        skip(f"Repositorio ECR {repo_name}")
+
+
+# ===========================================================================
+# 2. Servicios ECS — reducir a 0 y eliminar
+# ===========================================================================
+
+title("2. Servicios ECS")
 
 try:
     services = ecs.list_services(cluster=CLUSTER)["serviceArns"]
     if services:
-        # Primero escalar a 0 todos para liberar ENIs y target groups
         for svc_arn in services:
             svc_name = svc_arn.split("/")[-1]
             ecs.update_service(cluster=CLUSTER, service=svc_name, desiredCount=0)
@@ -60,10 +73,10 @@ except ecs.exceptions.ClusterNotFoundException:
 
 
 # ===========================================================================
-# 2. Cluster ECS
+# 3. Cluster ECS
 # ===========================================================================
 
-title("2. Cluster ECS")
+title("3. Cluster ECS")
 
 try:
     ecs.delete_cluster(cluster=CLUSTER)
@@ -73,10 +86,10 @@ except ecs.exceptions.ClusterNotFoundException:
 
 
 # ===========================================================================
-# 3. Task definitions — desregistrar todas las revisiones
+# 4. Task definitions — desregistrar todas las revisiones
 # ===========================================================================
 
-title("3. Task Definitions")
+title("4. Task Definitions")
 
 for family in ["postgres", "api", "swagger"]:
     try:
@@ -94,10 +107,11 @@ for family in ["postgres", "api", "swagger"]:
 
 
 # ===========================================================================
-# 4. ALB — listener, target group y load balancer
+# 5. ALB — listener, ALB y luego target group
+#    Orden importante: borrar listener y ALB antes que el target group
 # ===========================================================================
 
-title("4. ALB")
+title("5. ALB")
 
 albs = elbv2.describe_load_balancers()["LoadBalancers"]
 albs_tagged = [
@@ -112,62 +126,75 @@ albs_tagged = [
 for alb in albs_tagged:
     alb_arn = alb["LoadBalancerArn"]
 
-    # Listeners
+    # 1. Listeners primero
     listeners = elbv2.describe_listeners(LoadBalancerArn=alb_arn)["Listeners"]
     for l in listeners:
         elbv2.delete_listener(ListenerArn=l["ListenerArn"])
-        ok(f"Listener eliminado: {l['ListenerArn'].split('/')[-1]}")
+        ok(f"Listener eliminado")
 
-    # Target groups
-    tgs = elbv2.describe_target_groups(LoadBalancerArn=alb_arn)["TargetGroups"]
-    for tg in tgs:
-        elbv2.delete_target_group(TargetGroupArn=tg["TargetGroupArn"])
-        ok(f"Target group eliminado: {tg['TargetGroupName']}")
+    # 2. Recoger ARNs de target groups ANTES de borrar el ALB
+    tg_arns = [
+        tg["TargetGroupArn"]
+        for tg in elbv2.describe_target_groups(LoadBalancerArn=alb_arn)["TargetGroups"]
+    ]
 
-    # ALB
+    # 3. Borrar el ALB y esperar
     elbv2.delete_load_balancer(LoadBalancerArn=alb_arn)
-    ok(f"ALB eliminado: {alb['LoadBalancerName']}")
-
-    print("  Esperando a que el ALB se elimine completamente...")
+    ok(f"ALB {alb['LoadBalancerName']} eliminado, esperando...")
     waiter = elbv2.get_waiter("load_balancers_deleted")
     waiter.wait(LoadBalancerArns=[alb_arn])
     ok("ALB eliminado completamente")
+
+    # 4. Borrar target groups DESPUÉS de que el ALB haya desaparecido
+    for tg_arn in tg_arns:
+        try:
+            elbv2.delete_target_group(TargetGroupArn=tg_arn)
+            ok(f"Target group eliminado: {tg_arn.split('/')[-2]}")
+        except Exception as e:
+            print(f"  ! Error borrando target group: {e}")
 
 if not albs_tagged:
     skip("ALB")
 
 
 # ===========================================================================
-# 5. VPC Endpoints
+# 6. VPC Endpoints — borrar y esperar con un único describe al final
 # ===========================================================================
 
-title("5. VPC Endpoints")
+title("6. VPC Endpoints")
 
 endpoints = ec2.describe_vpc_endpoints(Filters=TAG_FILTER)["VpcEndpoints"]
-if endpoints:
-    ep_ids = [e["VpcEndpointId"] for e in endpoints]
+# Filtrar solo los que no estén ya eliminados
+ep_ids = [
+    e["VpcEndpointId"] for e in endpoints
+    if e["State"] not in ("deleted", "deleting")
+]
+
+if ep_ids:
     ec2.delete_vpc_endpoints(VpcEndpointIds=ep_ids)
-    ok(f"Endpoints eliminados: {ep_ids}")
+    ok(f"Solicitud de borrado enviada para {len(ep_ids)} endpoint(s)")
 
     print("  Esperando que los endpoints se eliminen...")
     while True:
-        pending = ec2.describe_vpc_endpoints(
+        # Una sola llamada describe, sin re-filtrar por tag (ya tenemos los IDs)
+        still_active = ec2.describe_vpc_endpoints(
             VpcEndpointIds=ep_ids,
-            Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleting", "pending"]}]
+            Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleting", "pending", "available"]}]
         )["VpcEndpoints"]
-        if not pending:
+        if not still_active:
             break
+        print(f"    Quedan {len(still_active)} endpoint(s) activos, esperando 10s...")
         time.sleep(10)
-    ok("Endpoints eliminados completamente")
+    ok("Todos los endpoints eliminados")
 else:
     skip("VPC Endpoints")
 
 
 # ===========================================================================
-# 6. Internet Gateway — detach + delete
+# 7. Internet Gateway — detach + delete
 # ===========================================================================
 
-title("6. Internet Gateway")
+title("7. Internet Gateway")
 
 vpcs = ec2.describe_vpcs(Filters=TAG_FILTER)["Vpcs"]
 vpc_id = vpcs[0]["VpcId"] if vpcs else None
@@ -188,10 +215,10 @@ else:
 
 
 # ===========================================================================
-# 7. Subnets
+# 8. Subnets
 # ===========================================================================
 
-title("7. Subnets")
+title("8. Subnets")
 
 if vpc_id:
     subnets = ec2.describe_subnets(Filters=TAG_FILTER)["Subnets"]
@@ -205,20 +232,18 @@ else:
 
 
 # ===========================================================================
-# 8. Route Tables
+# 9. Route Tables
 # ===========================================================================
 
-title("8. Route Tables")
+title("9. Route Tables")
 
 if vpc_id:
     rts = ec2.describe_route_tables(Filters=TAG_FILTER)["RouteTables"]
     for rt in rts:
-        # La route table main no se puede borrar explícitamente
         is_main = any(a.get("Main") for a in rt.get("Associations", []))
         if is_main:
             skip(f"Route table main {rt['RouteTableId']}")
             continue
-        # Desasociar primero
         for assoc in rt.get("Associations", []):
             if not assoc.get("Main"):
                 ec2.disassociate_route_table(AssociationId=assoc["RouteTableAssociationId"])
@@ -231,18 +256,15 @@ else:
 
 
 # ===========================================================================
-# 9. Security Groups
+# 10. Security Groups
 # ===========================================================================
 
-title("9. Security Groups")
+title("10. Security Groups")
 
 if vpc_id:
     sgs = ec2.describe_security_groups(Filters=TAG_FILTER)["SecurityGroups"]
-    # El SG por defecto de la VPC no se puede borrar
     sgs = [sg for sg in sgs if sg["GroupName"] != "default"]
 
-    # Primero revocar todas las reglas de entrada que referencian otros SGs
-    # del proyecto (evita el error de dependencia circular)
     for sg in sgs:
         if sg["IpPermissions"]:
             try:
@@ -266,31 +288,16 @@ else:
 
 
 # ===========================================================================
-# 10. VPC
+# 11. VPC
 # ===========================================================================
 
-title("10. VPC")
+title("11. VPC")
 
 if vpc_id:
     ec2.delete_vpc(VpcId=vpc_id)
     ok(f"VPC {vpc_id} eliminada")
 else:
     skip("VPC")
-
-
-# ===========================================================================
-# 11. ECR — borrar repositorios con todas sus imágenes
-# ===========================================================================
-
-title("11. Repositorios ECR")
-
-for repo_name in ["gamestore-postgres", "gamestore-api", "gamestore-swagger"]:
-    try:
-        # force=True borra el repo aunque tenga imágenes
-        ecr.delete_repository(repositoryName=repo_name, force=True)
-        ok(f"Repositorio ECR {repo_name} eliminado")
-    except ecr.exceptions.RepositoryNotFoundException:
-        skip(f"Repositorio ECR {repo_name}")
 
 
 # ===========================================================================
