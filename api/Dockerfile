@@ -1,3 +1,4 @@
+# api/Dockerfile
 FROM python:slim-trixie
 
 WORKDIR /app
@@ -8,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Dependencias Python
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

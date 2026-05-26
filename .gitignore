@@ -4,12 +4,8 @@
 # Ignore the __pycache__ directories
 __pycache__/
 
-# Ignore tocloud directory
-tocloud/
-
-# Ignore docs directory
-docs/
-
-# Ignore sh and yaml tests
+# Ignore sh and yaml files as well as pem/ppk keys
 *.sh
 *.yaml
+*.pem
+*.ppk

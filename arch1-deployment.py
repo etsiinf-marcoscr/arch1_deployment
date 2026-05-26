@@ -4,23 +4,32 @@ import subprocess
 
 # ---------------------------------------------------------------------------
 # Dependencias de entorno: credenciales AWS configuradas (ej: con aws configure) y Docker instalado y corriendo localmente (para build/push de imágenes).
+# Instalación de las dependencias necesarias en un bastion Amazon Linux 2023 (EC2):
+#   sudo dnf install -y python3-pip docker
+#   pip3 install boto3
+#   sudo systemctl start docker
+#   sudo systemctl enable docker
+#   sudo chmod 666 /var/run/docker.sock
+# o en unico comando:
+#   sudo dnf install -y python3-pip docker && pip3 install boto3 && sudo systemctl start docker && sudo systemctl enable docker && sudo chmod 666 /var/run/docker.sock
 # IMPORTANTE: tener al mismo nivel del script las carpetas "api" y "swagger" con sus respectivos Dockerfiles y código.
+# PUEDE OBTENER MAS INFORMACION SOBRE EL DESPLIEGUE EN LOS DOCUMENTOS DE LA CARPETA /docs DE ESTE REPOSITORIO.
 # ---------------------------------------------------------------------------
 
 REGION = "us-east-1"
 
-ec2   = boto3.client("ec2",   region_name=REGION)
-ecs   = boto3.client("ecs",   region_name=REGION)
-elbv2 = boto3.client("elbv2", region_name=REGION)
-sts   = boto3.client("sts")
+ec2   = boto3.client("ec2",   region_name=REGION) # redes
+ecs   = boto3.client("ecs",   region_name=REGION) # conetendores
+elbv2 = boto3.client("elbv2", region_name=REGION) # balanceador de carga
+sts   = boto3.client("sts") # servicio de seguridad para obtener el ID de cuenta y construir la URL del repositorio ECR
 
 ACCOUNT  = sts.get_caller_identity()["Account"]
 ECR_ROOT = f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com"
 
 # Tag usado en todos los recursos para poder identificarlos fácilmente y borrarlos luego con el script de teardown.
-TAGS     = [{"Key": "Stack", "Value": "arch1"}]
-TAGS_ECS = [{"key": "Stack", "value": "arch1"}]
-TAG_SPECS = lambda resource_type: [{"ResourceType": resource_type, "Tags": TAGS}]
+TAGS     = [{"Key": "Stack", "Value": "arch1"}] # etiqueta para recursos generales
+TAGS_ECS = [{"key": "Stack", "value": "arch1"}] # etiqueta para ECS (usa lowercase por limitación de ECS)
+TAG_SPECS = lambda resource_type: [{"ResourceType": resource_type, "Tags": TAGS}] # función para generar la estructura de tags necesaria en la creación de recursos (ej: VPC, subnets, security groups, etc)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -45,26 +54,26 @@ def ecr_login():
 def build_push_postgres():
     repo = f"{ECR_ROOT}/gamestore-postgres:latest"
     print("Build/push postgres")
-    subprocess.run("docker pull postgres:15",                 shell=True, check=True)
-    subprocess.run(f"docker tag postgres:15 {repo}",          shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                     shell=True, check=True)
+    subprocess.run("docker pull postgres:15", shell=True, check=True)
+    subprocess.run(f"docker tag postgres:15 {repo}", shell=True, check=True)
+    subprocess.run(f"docker push {repo}", shell=True, check=True)
 
 def build_push_api():
     repo = f"{ECR_ROOT}/gamestore-api:latest"
     print("Build/push API")
-    subprocess.run("docker build -t gamestore-api ./api",     shell=True, check=True)
+    subprocess.run("docker build -t gamestore-api ./api", shell=True, check=True)
     subprocess.run(f"docker tag gamestore-api:latest {repo}", shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                     shell=True, check=True)
+    subprocess.run(f"docker push {repo}", shell=True, check=True)
 
 def build_push_swagger():
     repo = f"{ECR_ROOT}/gamestore-swagger:latest"
     print("Build/push Swagger")
     subprocess.run("docker build -t gamestore-swagger ./swagger", shell=True, check=True)
     subprocess.run(f"docker tag gamestore-swagger:latest {repo}", shell=True, check=True)
-    subprocess.run(f"docker push {repo}",                         shell=True, check=True)
+    subprocess.run(f"docker push {repo}", shell=True, check=True)
 
 def wait_for_task_running(cluster, service):
-    print(f"Esperando que el task '{service}' esté RUNNING...")
+    print(f"Esperando que el task '{service}' este RUNNING...")
     while True:
         task_arns = ecs.list_tasks(cluster=cluster, serviceName=service)["taskArns"]
         if task_arns:
@@ -120,7 +129,7 @@ build_push_postgres()
 
 print("\nCreando VPC")
 vpc_id = ec2.create_vpc(
-    CidrBlock="10.0.0.0/16",
+    CidrBlock="11.0.0.0/16",
     TagSpecifications=TAG_SPECS("vpc")
 )["Vpc"]["VpcId"]
 ec2.modify_vpc_attribute(VpcId=vpc_id, EnableDnsHostnames={"Value": True})
@@ -137,17 +146,17 @@ az1 = azs[0]["ZoneName"]
 az2 = azs[1]["ZoneName"]
 
 public_subnet = ec2.create_subnet(
-    VpcId=vpc_id, CidrBlock="10.0.1.0/24", AvailabilityZone=az1,
+    VpcId=vpc_id, CidrBlock="11.0.1.0/24", AvailabilityZone=az1,
     TagSpecifications=TAG_SPECS("subnet")
 )["Subnet"]["SubnetId"]
 
 public_subnet2 = ec2.create_subnet(
-    VpcId=vpc_id, CidrBlock="10.0.3.0/24", AvailabilityZone=az2,
+    VpcId=vpc_id, CidrBlock="11.0.3.0/24", AvailabilityZone=az2,
     TagSpecifications=TAG_SPECS("subnet")
 )["Subnet"]["SubnetId"]
 
 private_subnet = ec2.create_subnet(
-    VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=az1,
+    VpcId=vpc_id, CidrBlock="11.0.2.0/24", AvailabilityZone=az1,
     TagSpecifications=TAG_SPECS("subnet")
 )["Subnet"]["SubnetId"]
 
@@ -192,9 +201,9 @@ def make_sg(name, desc):
         TagSpecifications=TAG_SPECS("security-group")
     )["GroupId"]
 
-swagger_sg  = make_sg("swagger-sg",  "swagger")
-backend_sg  = make_sg("backend-sg",  "backend")
-alb_sg      = make_sg("alb-sg",      "alb")
+swagger_sg  = make_sg("swagger-sg", "swagger")
+backend_sg  = make_sg("backend-sg", "backend")
+alb_sg      = make_sg("alb-sg", "alb")
 endpoint_sg = make_sg("endpoint-sg", "endpoint")
 
 ec2.authorize_security_group_ingress(GroupId=swagger_sg, IpPermissions=[{
@@ -303,8 +312,8 @@ ecs.register_task_definition(
         "image": f"{ECR_ROOT}/gamestore-postgres:latest",
         "portMappings": [{"containerPort": 5432}],
         "environment": [
-            {"name": "POSTGRES_DB",       "value": "gamestore"},
-            {"name": "POSTGRES_USER",     "value": "gamestore"},
+            {"name": "POSTGRES_DB", "value": "gamestore"},
+            {"name": "POSTGRES_USER", "value": "gamestore"},
             {"name": "POSTGRES_PASSWORD", "value": "gamestorepass"}
         ]
     }]

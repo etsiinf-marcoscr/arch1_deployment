@@ -1,0 +1,119 @@
+==================================================
+  1. Repositorios ECR
+==================================================
+  ✓ Repositorio ECR gamestore-postgres eliminado
+  ✓ Repositorio ECR gamestore-api eliminado
+  ✓ Repositorio ECR gamestore-swagger eliminado
+
+==================================================
+  2. Servicios ECS
+==================================================
+  ✓ Servicio swagger escalado a 0
+  ✓ Servicio api escalado a 0
+  ✓ Servicio postgres escalado a 0
+  Esperando que los tasks se detengan...
+  ✓ Servicio swagger eliminado
+  ✓ Servicio api eliminado
+  ✓ Servicio postgres eliminado
+
+==================================================
+  3. Cluster ECS
+==================================================
+  ✓ Cluster gamestore-cluster eliminado
+
+==================================================
+  4. Task Definitions
+==================================================
+  ✓ Task definition desregistrada: postgres:16
+  ✓ Task definition desregistrada: api:18
+  ✓ Task definition desregistrada: swagger:15
+
+==================================================
+  5. ALB
+==================================================
+  ✓ Listener eliminado
+  ✓ ALB api-alb eliminado, esperando...
+  ✓ ALB eliminado completamente
+
+  Buscando target groups (asociados y huérfanos)...
+  ✓ Target group eliminado: api-target
+
+==================================================
+  6. VPC Endpoints
+==================================================
+  ✓ Solicitud de borrado enviada para 4 endpoint(s)
+  Esperando que los endpoints se eliminen...
+  ✓ Todos los endpoints eliminados
+
+==================================================
+  7. Internet Gateway (esperando 60s tras eliminar endpoints)
+==================================================
+  ✓ IGW igw-035c2d329e141c17f desconectado y eliminado
+
+==================================================
+  8. Subnets
+==================================================
+  ✓ Subnet subnet-0a5458400ec9eb3a4 eliminada
+    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
+    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
+    ENI huérfano detectado: eni-06f4b5335df320ee3 (estado: available)
+    ENI eni-06f4b5335df320ee3 eliminado
+    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
+    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
+    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
+    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
+    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
+    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
+    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
+    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
+    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
+    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
+    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: available)
+    ENI eni-093ab9e095b6495c1 eliminado
+    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: available)
+    ENI eni-0cec4723c7063cdf4 eliminado
+    ENI huérfano detectado: eni-0c32ae180685055dc (estado: available)
+    ENI eni-0c32ae180685055dc eliminado
+  ✓ Subnet subnet-050cc38a56bdefb55 eliminada
+  ✓ Subnet subnet-0329c8505f6a5b9c7 eliminada
+  ✓ Subnet subnet-0bd3cc86148c4aa20 eliminada
+  ✓ Subnet subnet-0ed11a608b562e861 eliminada
+  ✓ Subnet subnet-03d0b847128fe6151 eliminada
+
+==================================================
+  9. Route Tables
+==================================================
+  ✓ Route table rtb-0524b44d109b84a54 eliminada
+  ✓ Route table rtb-06cdde9f50d51d567 eliminada
+  ✓ Route table rtb-09cf50e11637e09c8 eliminada
+  ✓ Route table rtb-0e3823f94627f633a eliminada
+
+==================================================
+  10. Security Groups
+==================================================
+  ✓ SG backend-sg (sg-0dd9e21aa2fba1012) eliminado
+  ✓ SG endpoint-sg (sg-02636a390ea1e6f80) eliminado
+  ✓ SG endpoint-sg (sg-073366a71003a423d) eliminado
+  ✓ SG backend-sg (sg-0d40adaa6f1b524e6) eliminado
+  ✓ SG swagger-sg (sg-0c1d84f55bca92cb6) eliminado
+  ✓ SG alb-sg (sg-0a4ac32a4ed9f61ef) eliminado
+  ✓ SG swagger-sg (sg-06ad18668635e0040) eliminado
+  ✓ SG alb-sg (sg-0ca254bb34fa9cc74) eliminado
+
+==================================================
+  11. VPC
+==================================================
+  ✓ VPC vpc-00cf09eff979a3fcf eliminada
+
+==================================================
+  TEARDOWN COMPLETADO
+==================================================
+  Todos los recursos de gamestore han sido eliminados.

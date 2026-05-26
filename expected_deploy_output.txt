@@ -1,0 +1,212 @@
+Repositorio creado: gamestore-postgres
+Repositorio creado: gamestore-api
+Repositorio creado: gamestore-swagger
+Login ECR
+WARNING! Your password will be stored unencrypted in /home/ec2-user/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+Build/push postgres
+15: Pulling from library/postgres
+5b4d6ff92fc4: Pull complete
+faac557a4014: Pull complete
+23ae1f680f8f: Pull complete
+d85a6fe690f8: Pull complete
+a1b56273edfa: Pull complete
+74e78423263b: Pull complete
+e64c84d18f15: Pull complete
+e15d3b4493f3: Pull complete
+450a0feadfd8: Pull complete
+4f7b5a6f4005: Pull complete
+02dde53e1bfd: Pull complete
+ec2378712a6f: Pull complete
+1622e7a6bba6: Pull complete
+3b99619cea16: Pull complete
+Digest: sha256:1b92e7a80c021647bf70f5d3eb66066a998e4f5cf43c07bb9dc9f729782cf88e
+Status: Downloaded newer image for postgres:15
+docker.io/library/postgres:15
+The push refers to repository [767397930007.dkr.ecr.us-east-1.amazonaws.com/gamestore-postgres]
+be1545d1753c: Pushed
+60bb3d4950b6: Pushed
+60903cf223d0: Pushed
+5a37c4a063f7: Pushed
+3bbb1fe6b3bc: Pushed
+9495d2383014: Pushed
+4b4df70beb04: Pushed
+71ead8c2232d: Pushed
+1609f393393f: Pushed
+e76d7259171f: Pushed
+de1e0d194783: Pushed
+f1409b9e9e54: Pushed
+cf3c2bcaa7fa: Pushed
+219a998c6050: Pushed
+latest: digest: sha256:702c115172ca0b8913b862b556fa9bba945519fd6c7a3dfc89c93674cd84f7d6 size: 3247
+
+Creando VPC
+VPC: vpc-008da7070ef952b2c
+Creando subnets
+  public_subnet  → us-east-1a
+  public_subnet2 → us-east-1b
+  private_subnet → us-east-1a
+Creando IGW
+Routing público
+Routing privado
+Creando security groups
+Creando VPC endpoints
+Usando execution role: arn:aws:iam::767397930007:role/LabRole
+Creando cluster ECS
+Registrando task postgres
+Creando servicio postgres
+Esperando que el task 'postgres' esté RUNNING...
+  Estado actual: PROVISIONING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: PENDING
+  Estado actual: RUNNING
+IP privada postgres: 11.0.2.191
+Build/push API
+[+] Building 57.8s (13/13) FINISHED                                                                                                                                                               docker:default
+ => [internal] load build definition from Dockerfile                                                                                                                                                        0.1s
+ => => transferring dockerfile: 567B                                                                                                                                                                        0.0s
+ => [internal] load metadata for docker.io/library/python:slim-trixie                                                                                                                                       0.6s
+ => [internal] load .dockerignore                                                                                                                                                                           0.0s
+ => => transferring context: 2B                                                                                                                                                                             0.0s
+ => [1/8] FROM docker.io/library/python:slim-trixie@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97                                                                                 1.9s
+ => => resolve docker.io/library/python:slim-trixie@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97                                                                                 0.0s
+ => => sha256:dcf23796d1e8ae9b05eee16765fcf83722d2c0fdda9a27d09d25610a7ed9a0a0 1.29MB / 1.29MB                                                                                                              0.2s
+ => => sha256:99500e0cbdb98ad73639044dd5113029e40bdab38b4ea5fe594532bb79cbe57f 12.33MB / 12.33MB                                                                                                            0.6s
+ => => sha256:b83fa8e4dee39a3198704bc54184a177c88e40a821cb24d55437776d8cfdf85a 249B / 249B                                                                                                                  0.1s
+ => => sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 10.37kB / 10.37kB                                                                                                            0.0s
+ => => sha256:7d8de339aa8619f9b25e7d474d687ae4f6ef9704adad90a136af0f485adeccb7 1.75kB / 1.75kB                                                                                                              0.0s
+ => => sha256:69951c9faec3fbeb515127ff4c880c352ed959e95855c8c891d12cd87abb38b7 4.93kB / 4.93kB                                                                                                              0.0s
+ => => extracting sha256:dcf23796d1e8ae9b05eee16765fcf83722d2c0fdda9a27d09d25610a7ed9a0a0                                                                                                                   0.2s
+ => => extracting sha256:99500e0cbdb98ad73639044dd5113029e40bdab38b4ea5fe594532bb79cbe57f                                                                                                                   1.0s
+ => => extracting sha256:b83fa8e4dee39a3198704bc54184a177c88e40a821cb24d55437776d8cfdf85a                                                                                                                   0.0s
+ => [internal] load build context                                                                                                                                                                           0.1s
+ => => transferring context: 32.20kB                                                                                                                                                                        0.1s
+ => [2/8] WORKDIR /app                                                                                                                                                                                      0.0s
+ => [3/8] RUN apt-get update && apt-get install -y     gcc     libpq-dev     postgresql-client     && rm -rf /var/lib/apt/lists/*                                                                          23.2s
+ => [4/8] COPY requirements.txt .                                                                                                                                                                           0.2s
+ => [5/8] RUN pip install -r requirements.txt                                                                                                                                                              23.0s
+ => [6/8] COPY . .                                                                                                                                                                                          0.2s
+ => [7/8] COPY wait-for-db.sh /wait-for-db.sh                                                                                                                                                               0.1s
+ => [8/8] RUN sed -i 's/\r//' /wait-for-db.sh && chmod +x /wait-for-db.sh                                                                                                                                   0.8s
+ => exporting to image                                                                                                                                                                                      7.4s
+ => => exporting layers                                                                                                                                                                                     7.4s
+ => => writing image sha256:4c3fae9589bef47a677418ae5773571ffaebbf3e492798284f21855ed842081e                                                                                                                0.0s
+ => => naming to docker.io/library/gamestore-api                                                                                                                                                            0.0s
+The push refers to repository [767397930007.dkr.ecr.us-east-1.amazonaws.com/gamestore-api]
+1d850615e27e: Pushed
+37dd751d90ee: Pushed
+4a940d5f7fbb: Pushed
+69f0af88b5d3: Pushed
+5e9d361d989d: Pushed
+f6c7bf2970fa: Pushed
+8f62d8fd53b7: Pushed
+125aadb3053d: Pushed
+b86c6a2105b6: Pushed
+8258db9b59a3: Pushed
+219a998c6050: Pushed
+latest: digest: sha256:4e167e3dd5cf3ac2e3b2720bde482385659b518654d4363f16b0696459a6035f size: 2618
+Registrando task API
+Creando ALB
+ALB DNS: api-alb-54072293.us-east-1.elb.amazonaws.com
+Creando servicio API
+Build/push Swagger
+[+] Building 4.8s (7/7) FINISHED                                                                                                                                                                  docker:default
+ => [internal] load build definition from Dockerfile                                                                                                                                                        0.1s
+ => => transferring dockerfile: 205B                                                                                                                                                                        0.0s
+ => [internal] load metadata for docker.io/swaggerapi/swagger-ui:latest                                                                                                                                     0.5s
+ => [internal] load .dockerignore                                                                                                                                                                           0.0s
+ => => transferring context: 2B                                                                                                                                                                             0.0s
+ => [internal] load build context                                                                                                                                                                           0.0s
+ => => transferring context: 24.84kB                                                                                                                                                                        0.0s
+ => [1/2] FROM docker.io/swaggerapi/swagger-ui:latest@sha256:135a9ced4005a947bbb1757bc509309d88519d985aa0f5616f4fdfab1eba6ff6                                                                               3.9s
+ => => resolve docker.io/swaggerapi/swagger-ui:latest@sha256:135a9ced4005a947bbb1757bc509309d88519d985aa0f5616f4fdfab1eba6ff6                                                                               0.0s
+ => => sha256:135a9ced4005a947bbb1757bc509309d88519d985aa0f5616f4fdfab1eba6ff6 1.55kB / 1.55kB                                                                                                              0.0s
+ => => sha256:9f5fb4ffc28ad30a01e7fd936203d69e21dcfc8cb565145fc85c11976776cfd2 3.05kB / 3.05kB                                                                                                              0.0s
+ => => sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 3.86MB / 3.86MB                                                                                                              0.1s
+ => => sha256:7f175ecb4aec16f58caab168a3b44751c86cba01f05e4cc66b618a8fe3e6f7c7 1.87MB / 1.87MB                                                                                                              0.1s
+ => => sha256:c57f9500efd55884217ce5c4eff9d51c96b86fdbb2c2c8d9472573e52f33225b 627B / 627B                                                                                                                  0.1s
+ => => sha256:e552c15fa0b43c4a21530539e06557bf0cba0d3277e6767bbdc0e2d7da797694 15.80kB / 15.80kB                                                                                                            0.0s
+ => => extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb                                                                                                                   0.3s
+ => => sha256:b087412f0732e4526aeca7fed15f7dfc458e114e9ac81705390f52119d85b943 1.21kB / 1.21kB                                                                                                              0.2s
+ => => sha256:15c316802cf5c3cf4320e85a73f67b903364a6cc459445769d294c3c7cdf5007 955B / 955B                                                                                                                  0.2s
+ => => sha256:294d7581acec76bb5afaf68b7492deefd69065dd564ee81f5ffda7cbda699a70 403B / 403B                                                                                                                  0.2s
+ => => sha256:409c3fbf3b04f3111c7cc04c594031e36bedff3a262da6628eed92e15621cf2c 1.40kB / 1.40kB                                                                                                              0.3s
+ => => sha256:5dfb4b9bbc0abfe40e775a308314fb93ec742890908f95660e69041d940d9728 20.25MB / 20.25MB                                                                                                            1.0s
+ => => sha256:1cf710e67d0c456e77a62b617d17fabe556491aa89da92a0cfb565a14de76a88 24.57MB / 24.57MB                                                                                                            1.2s
+ => => sha256:714a40f66e753eac1f250886cc77c305b3ac48152e27ab42de4be32c2cbda58b 990B / 990B                                                                                                                  0.3s
+ => => sha256:e042861f25c5f1901dc65fd9ae612e551eff2f4a193b3f137485f1d686d226a2 3.20MB / 3.20MB                                                                                                              0.6s
+ => => extracting sha256:7f175ecb4aec16f58caab168a3b44751c86cba01f05e4cc66b618a8fe3e6f7c7                                                                                                                   0.3s
+ => => sha256:1e041c416c1bd5d72dd49e8458a9ffcdb6e4bdd55367ed92771a17b2e712904a 838B / 838B                                                                                                                  0.7s
+ => => sha256:c322eda127dc5d35b278d6893685558ccf6d150973737623569b34b251a07a2f 3.22kB / 3.22kB                                                                                                              0.7s
+ => => sha256:2af946686c73bd239a704adebe507bb503d8497d622f64e128e1a344a1c99aa9 1.14kB / 1.14kB                                                                                                              0.8s
+ => => extracting sha256:c57f9500efd55884217ce5c4eff9d51c96b86fdbb2c2c8d9472573e52f33225b                                                                                                                   0.0s
+ => => extracting sha256:15c316802cf5c3cf4320e85a73f67b903364a6cc459445769d294c3c7cdf5007                                                                                                                   0.0s
+ => => extracting sha256:294d7581acec76bb5afaf68b7492deefd69065dd564ee81f5ffda7cbda699a70                                                                                                                   0.0s
+ => => extracting sha256:b087412f0732e4526aeca7fed15f7dfc458e114e9ac81705390f52119d85b943                                                                                                                   0.0s
+ => => extracting sha256:409c3fbf3b04f3111c7cc04c594031e36bedff3a262da6628eed92e15621cf2c                                                                                                                   0.0s
+ => => extracting sha256:5dfb4b9bbc0abfe40e775a308314fb93ec742890908f95660e69041d940d9728                                                                                                                   0.9s
+ => => extracting sha256:1cf710e67d0c456e77a62b617d17fabe556491aa89da92a0cfb565a14de76a88                                                                                                                   1.1s
+ => => extracting sha256:714a40f66e753eac1f250886cc77c305b3ac48152e27ab42de4be32c2cbda58b                                                                                                                   0.0s
+ => => extracting sha256:e042861f25c5f1901dc65fd9ae612e551eff2f4a193b3f137485f1d686d226a2                                                                                                                   0.2s
+ => => extracting sha256:1e041c416c1bd5d72dd49e8458a9ffcdb6e4bdd55367ed92771a17b2e712904a                                                                                                                   0.0s
+ => => extracting sha256:c322eda127dc5d35b278d6893685558ccf6d150973737623569b34b251a07a2f                                                                                                                   0.0s
+ => => extracting sha256:2af946686c73bd239a704adebe507bb503d8497d622f64e128e1a344a1c99aa9                                                                                                                   0.0s
+ => [2/2] COPY swagger-config.json /swagger.json                                                                                                                                                            0.1s
+ => exporting to image                                                                                                                                                                                      0.0s
+ => => exporting layers                                                                                                                                                                                     0.0s
+ => => writing image sha256:a4679f1b6f8f8f304c06c04525a1bcc2f02e113ffc967a32a6ccb482e63dc8ba                                                                                                                0.0s
+ => => naming to docker.io/library/gamestore-swagger                                                                                                                                                        0.0s
+The push refers to repository [767397930007.dkr.ecr.us-east-1.amazonaws.com/gamestore-swagger]
+faf0d6c897fd: Pushed
+22cf7de202dc: Pushed
+af9a60b3d978: Pushed
+2ca167560e15: Pushed
+680eb40c3c98: Pushed
+51923d4cda7e: Pushed
+d8ea25a25abf: Pushed
+50af7dc2ba62: Pushed
+8aa20eff8f77: Pushed
+6a46a030f326: Pushed
+d4f7f1ed980c: Pushed
+ca9777513112: Pushed
+e6fdeb6ca4ff: Pushed
+776bfa070c0d: Pushed
+29df493baa13: Pushed
+latest: digest: sha256:f94cd821c001bc4f5b19ae1948e9ae446ee5bd986ee99b0d0f850cbffd86512d size: 3450
+Registrando task Swagger
+Creando servicio Swagger
+Esperando que el task 'swagger' esté RUNNING...
+  Estado actual: PROVISIONING
+  Estado actual: PENDING
+  Estado actual: RUNNING
+
+=== DESPLIEGUE TERMINADO ===
+API:     http://api-alb-54072293.us-east-1.elb.amazonaws.com/api/[operation] (ej: http://api-alb-54072293.us-east-1.elb.amazonaws.com/api/game)
+Swagger: http://35.171.23.21:8080

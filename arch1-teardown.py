@@ -1,6 +1,6 @@
 import boto3
 import time
-
+from time import sleep
 # ---------------------------------------------------------------------------
 # Borra todos los recursos del proyecto gamestore en el orden correcto.
 # Busca recursos por el tag Stack=arch1.
@@ -185,7 +185,7 @@ if not tgs_to_delete:
 title("6. VPC Endpoints")
 
 endpoints = ec2.describe_vpc_endpoints(Filters=TAG_FILTER)["VpcEndpoints"]
-# Filtrar solo los que no estén ya eliminados
+# Filtrar solo los que no esten ya eliminados
 ep_ids = [
     e["VpcEndpointId"] for e in endpoints
     if e["State"] not in ("deleted", "deleting")
@@ -207,7 +207,7 @@ if ep_ids:
             print(f"    Quedan {len(still_active)} endpoint(s) activos, esperando 10s...")
         except ec2.exceptions.ClientError as e:
             if "InvalidVpcEndpointId.NotFound" in str(e):
-                # Todos los endpoints han desaparecido — borrado completado
+                # Todos los endpoints han desaparecido: borrado completado
                 break
             raise
         time.sleep(10)
@@ -220,7 +220,9 @@ else:
 # 7. Internet Gateway — detach + delete
 # ===========================================================================
 
-title("7. Internet Gateway")
+title("7. Internet Gateway (esperando 60s tras eliminar endpoints)")
+
+sleep(60)  # Esperar un poco para que AWS actualice el estado de los recursos tras eliminar endpoints
 
 vpcs = ec2.describe_vpcs(Filters=TAG_FILTER)["Vpcs"]
 vpc_id = vpcs[0]["VpcId"] if vpcs else None
@@ -234,17 +236,16 @@ if vpc_id:
     for eni in enis:
         assoc = eni.get("Association")
         if assoc:
-            # IP pública de Fargate (no es EIP, no tiene AllocationId)
-            # Solo hay que desasociarla, no liberarla
             allocation_id = assoc.get("AllocationId")
             association_id = assoc.get("AssociationId")
+            # Si tiene AssociationId es que la IP pública está asociada a esta ENI, desasociar primero
             if association_id:
                 try:
                     ec2.disassociate_address(AssociationId=association_id)
                     print(f"    IP pública desasociada de ENI {eni['NetworkInterfaceId']}")
                 except Exception as e:
                     print(f"    No se pudo desasociar IP: {e}")
-            # Si tiene AllocationId es una EIP — liberar también
+            # Si tiene AllocationId es una EIP, liberar también
             if allocation_id:
                 try:
                     ec2.release_address(AllocationId=allocation_id)
