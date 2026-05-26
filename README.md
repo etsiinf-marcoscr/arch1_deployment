@@ -1,5 +1,5 @@
-TFG de Monitorización y Análisis de Arquitecturas Cloud basadas en Contenedores
-Autor: Marcos Casado Ruiz
+TFG de Monitorización y Análisis de Arquitecturas Cloud basadas en Contenedores   
+**Autor: Marcos Casado Ruiz**
 
 ## Despliegue básico mediante bástion de despliegue (EC2)
 
