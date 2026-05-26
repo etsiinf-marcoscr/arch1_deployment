@@ -14,13 +14,18 @@ Paso 2: Instalar las dependencias necesarias en el bastion:
    sudo dnf install -y python3-pip docker && pip3 install boto3 && sudo systemctl start docker && sudo systemctl enable docker && sudo chmod 666 /var/run/docker.sock
 ```
 
-Paso 3: Abrir la carpeta del repo y ejecutar el script de despliegue:
+Paso 3: Configurar las credenciales AWS (también ```aws login```):
+```bash
+   aws configure
+```
+
+Paso 4: Abrir la carpeta del repo y ejecutar el script de despliegue:
 ```bash
    cd arch1_deployment/
    python3 arch1-deployment.py
 ```
 
-Paso 4 (opcional): Borrado de los recursos creados por el script de despliegue (para evitar costes innecesarios):
+Paso 5 (opcional): Borrado de los recursos creados por el script de despliegue (para evitar costes innecesarios):
 ```bash
    python3 arch1-teardown.py
 ```
