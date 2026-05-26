@@ -1,7 +1,7 @@
 TFG de Monitorización y Análisis de Arquitecturas Cloud basadas en Contenedores   
 **Autor: Marcos Casado Ruiz**
 
-## Despliegue básico mediante bástion de despliegue (EC2)
+## Despliegue básico mediante bastión de despliegue (EC2)
 
 Paso 1: Instalar git y clonar el repositorio en un bastion Amazon Linux 2023 (EC2):
 ```bash
