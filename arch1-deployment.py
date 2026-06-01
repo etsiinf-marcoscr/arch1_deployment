@@ -160,9 +160,9 @@ private_subnet = ec2.create_subnet(
     TagSpecifications=TAG_SPECS("subnet")
 )["Subnet"]["SubnetId"]
 
-print(f"  public_subnet  → {az1}")
-print(f"  public_subnet2 → {az2}")
-print(f"  private_subnet → {az1}")
+print(f"  public_subnet  -> {az1}")
+print(f"  public_subnet2 -> {az2}")
+print(f"  private_subnet -> {az1}")
 
 print("Creando IGW")
 igw = ec2.create_internet_gateway(
