@@ -104,7 +104,7 @@ def get_task_public_ip(task):
 
 
 # ===========================================================================
-# 1. ECR — repositorios e imágenes base
+# 1. ECR - repositorios e imágenes base
 # ===========================================================================
 
 ecr = boto3.client("ecr", region_name=REGION)
@@ -281,7 +281,7 @@ create_tagged_endpoint(
 
 
 # ===========================================================================
-# 4.5 IAM — execution role (usando LabRole del entorno de laboratorio)
+# 4.5 IAM - execution role (usando LabRole del entorno de laboratorio)
 # ===========================================================================
 
 iam = boto3.client("iam")

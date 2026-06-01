@@ -32,7 +32,7 @@ def skip(msg):
 
 
 # ===========================================================================
-# 1. ECR — borrar repositorios al principio (sin dependencias)
+# 1. ECR - borrar repositorios al principio (sin dependencias)
 # ===========================================================================
 
 title("1. Repositorios ECR")
@@ -46,7 +46,7 @@ for repo_name in ["gamestore-postgres", "gamestore-api", "gamestore-swagger"]:
 
 
 # ===========================================================================
-# 2. Servicios ECS — reducir a 0 y eliminar
+# 2. Servicios ECS - reducir a 0 y eliminar
 # ===========================================================================
 
 title("2. Servicios ECS")
@@ -86,7 +86,7 @@ except ecs.exceptions.ClusterNotFoundException:
 
 
 # ===========================================================================
-# 4. Task definitions — desregistrar todas las revisiones
+# 4. Task definitions - desregistrar todas las revisiones
 # ===========================================================================
 
 title("4. Task Definitions")
@@ -107,7 +107,7 @@ for family in ["postgres", "api", "swagger"]:
 
 
 # ===========================================================================
-# 5. ALB — listener, ALB, y target groups (por tag + por nombre)
+# 5. ALB - listener, ALB, y target groups (por tag + por nombre)
 # ===========================================================================
 
 title("5. ALB")
@@ -179,7 +179,7 @@ if not tgs_to_delete:
 
 
 # ===========================================================================
-# 6. VPC Endpoints — borrar y esperar con un único describe al final
+# 6. VPC Endpoints - borrar y esperar con un único describe al final
 # ===========================================================================
 
 title("6. VPC Endpoints")
@@ -217,7 +217,7 @@ else:
 
 
 # ===========================================================================
-# 7. Internet Gateway — detach + delete
+# 7. Internet Gateway - detach + delete
 # ===========================================================================
 
 title("7. Internet Gateway (esperando 60s tras eliminar endpoints)")
