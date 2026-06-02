@@ -8,12 +8,12 @@
 ==================================================
   2. Servicios ECS
 ==================================================
-  ✓ Servicio swagger escalado a 0
   ✓ Servicio api escalado a 0
+  ✓ Servicio swagger escalado a 0
   ✓ Servicio postgres escalado a 0
   Esperando que los tasks se detengan...
-  ✓ Servicio swagger eliminado
   ✓ Servicio api eliminado
+  ✓ Servicio swagger eliminado
   ✓ Servicio postgres eliminado
 
 ==================================================
@@ -24,9 +24,12 @@
 ==================================================
   4. Task Definitions
 ==================================================
-  ✓ Task definition desregistrada: postgres:16
-  ✓ Task definition desregistrada: api:18
-  ✓ Task definition desregistrada: swagger:15
+  ✓ Task definition desregistrada: postgres:20
+  ✓ Task definition borrada: postgres:20
+  ✓ Task definition desregistrada: api:22
+  ✓ Task definition borrada: api:22
+  ✓ Task definition desregistrada: swagger:19
+  ✓ Task definition borrada: swagger:19
 
 ==================================================
   5. ALB
@@ -48,72 +51,80 @@
 ==================================================
   7. Internet Gateway (esperando 60s tras eliminar endpoints)
 ==================================================
-  ✓ IGW igw-035c2d329e141c17f desconectado y eliminado
+  ✓ IGW igw-02ace8479bcc413ad desconectado y eliminado
 
 ==================================================
   8. Subnets
 ==================================================
-  ✓ Subnet subnet-0a5458400ec9eb3a4 eliminada
-    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
-    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
-    ENI huérfano detectado: eni-06f4b5335df320ee3 (estado: available)
-    ENI eni-06f4b5335df320ee3 eliminado
-    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
-    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
-    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
-    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
-    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
-    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
-    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
-    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
-    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: in-use)
-    ENI eni-0cec4723c7063cdf4 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: in-use)
-    ENI eni-093ab9e095b6495c1 no está disponible aún, esperando...
-    ENI huérfano detectado: eni-0c32ae180685055dc (estado: in-use)
-    ENI eni-0c32ae180685055dc no está disponible aún, esperando...
-    ENI huérfano detectado: eni-093ab9e095b6495c1 (estado: available)
-    ENI eni-093ab9e095b6495c1 eliminado
-    ENI huérfano detectado: eni-0cec4723c7063cdf4 (estado: available)
-    ENI eni-0cec4723c7063cdf4 eliminado
-    ENI huérfano detectado: eni-0c32ae180685055dc (estado: available)
-    ENI eni-0c32ae180685055dc eliminado
-  ✓ Subnet subnet-050cc38a56bdefb55 eliminada
-  ✓ Subnet subnet-0329c8505f6a5b9c7 eliminada
-  ✓ Subnet subnet-0bd3cc86148c4aa20 eliminada
-  ✓ Subnet subnet-0ed11a608b562e861 eliminada
-  ✓ Subnet subnet-03d0b847128fe6151 eliminada
+  ✓ Subnet subnet-00c8e515b3ff185e0 eliminada
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: in-use)
+    ENI eni-0100e42a1d854983e no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0bedb883436048e05 (estado: in-use)
+    ENI eni-0bedb883436048e05 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: in-use)
+    ENI eni-0100e42a1d854983e no está disponible aún, esperando...
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0bedb883436048e05 (estado: available)
+    ENI eni-0bedb883436048e05 eliminado
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: in-use)
+    ENI eni-0100e42a1d854983e no está disponible aún, esperando...
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: in-use)
+    ENI eni-0100e42a1d854983e no está disponible aún, esperando...
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: in-use)
+    ENI eni-0100e42a1d854983e no está disponible aún, esperando...
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-0100e42a1d854983e (estado: available)
+    ENI eni-0100e42a1d854983e eliminado
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: in-use)
+    ENI eni-07a9a07ad8fd165e2 no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: in-use)
+    ENI eni-01067f3d35b77ca0b no está disponible aún, esperando...
+    ENI huérfano detectado: eni-01067f3d35b77ca0b (estado: available)
+    ENI eni-01067f3d35b77ca0b eliminado
+    ENI huérfano detectado: eni-07a9a07ad8fd165e2 (estado: available)
+    ENI eni-07a9a07ad8fd165e2 eliminado
+  ✓ Subnet subnet-058724e68436c5a95 eliminada
+  ✓ Subnet subnet-0cf5067c2da4ed568 eliminada
 
 ==================================================
   9. Route Tables
 ==================================================
-  ✓ Route table rtb-0524b44d109b84a54 eliminada
-  ✓ Route table rtb-06cdde9f50d51d567 eliminada
-  ✓ Route table rtb-09cf50e11637e09c8 eliminada
-  ✓ Route table rtb-0e3823f94627f633a eliminada
+  ✓ Route table rtb-0fc64757d4a3f40e1 eliminada
+  ✓ Route table rtb-0a71baa16349f50f6 eliminada
 
 ==================================================
   10. Security Groups
 ==================================================
-  ✓ SG backend-sg (sg-0dd9e21aa2fba1012) eliminado
-  ✓ SG endpoint-sg (sg-02636a390ea1e6f80) eliminado
-  ✓ SG endpoint-sg (sg-073366a71003a423d) eliminado
-  ✓ SG backend-sg (sg-0d40adaa6f1b524e6) eliminado
-  ✓ SG swagger-sg (sg-0c1d84f55bca92cb6) eliminado
-  ✓ SG alb-sg (sg-0a4ac32a4ed9f61ef) eliminado
-  ✓ SG swagger-sg (sg-06ad18668635e0040) eliminado
-  ✓ SG alb-sg (sg-0ca254bb34fa9cc74) eliminado
+  ✓ SG endpoint-sg (sg-0109534b43eb26ec2) eliminado
+  ✓ SG swagger-sg (sg-05e457a09f4264bd9) eliminado
+  ✓ SG backend-sg (sg-0fe8056aced99ed2a) eliminado
+  ✓ SG alb-sg (sg-0949aea4364c6300e) eliminado
 
 ==================================================
   11. VPC
 ==================================================
-  ✓ VPC vpc-00cf09eff979a3fcf eliminada
+  ✓ VPC vpc-07cd64dd3f55fdd05 eliminada
 
 ==================================================
   TEARDOWN COMPLETADO
 ==================================================
   Todos los recursos de gamestore han sido eliminados.
+  Recuerde eliminar la máquina EC2 de bastión en caso de haberla utilizado para el despliegue.
