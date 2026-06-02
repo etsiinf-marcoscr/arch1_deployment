@@ -127,4 +127,5 @@
   TEARDOWN COMPLETADO
 ==================================================
   Todos los recursos de gamestore han sido eliminados.
+  Recuerde eliminar los registros de Cloudwatch en caso de no necesitarlos.
   Recuerde eliminar la máquina EC2 de bastión en caso de haberla utilizado para el despliegue.

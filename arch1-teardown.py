@@ -408,5 +408,6 @@ else:
 
 title("TEARDOWN COMPLETADO")
 print("  Todos los recursos de gamestore han sido eliminados.")
+print("  Recuerde eliminar los registros de Cloudwatch en caso de no necesitarlos.")
 print("  Recuerde eliminar la máquina EC2 de bastión en caso de haberla utilizado para el despliegue.")
 print()
