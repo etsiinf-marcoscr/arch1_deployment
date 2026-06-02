@@ -37,7 +37,7 @@ LOG_GROUPS = {
     "api":      "/ecs/gamestore-api",
     "swagger":  "/ecs/gamestore-swagger",
 }
-LOG_RETENTION_DAYS = 30 
+LOG_RETENTION_DAYS = 3 
 
 # ---------------------------------------------------------------------------
 # Helpers
