@@ -131,6 +131,14 @@ def log_config(service_name: str) -> dict:
 
 
 # ===========================================================================
+# 0. CloudWatch Logs - crear log groups
+# ===========================================================================
+
+print("\nCreando log groups en CloudWatch")
+for service, group_name in LOG_GROUPS.items():
+    ensure_log_group(group_name)
+
+# ===========================================================================
 # 1. ECR - repositorios e imágenes base
 # ===========================================================================
 
