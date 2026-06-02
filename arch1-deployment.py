@@ -22,6 +22,7 @@ ec2   = boto3.client("ec2",   region_name=REGION) # redes
 ecs   = boto3.client("ecs",   region_name=REGION) # conetendores
 elbv2 = boto3.client("elbv2", region_name=REGION) # balanceador de carga
 sts   = boto3.client("sts") # servicio de seguridad para obtener el ID de cuenta y construir la URL del repositorio ECR
+logs  = boto3.client("logs",  region_name=REGION) # logs de CloudWatch
 
 ACCOUNT  = sts.get_caller_identity()["Account"]
 ECR_ROOT = f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com"
@@ -30,6 +31,13 @@ ECR_ROOT = f"{ACCOUNT}.dkr.ecr.{REGION}.amazonaws.com"
 TAGS     = [{"Key": "Stack", "Value": "arch1"}] # etiqueta para recursos generales
 TAGS_ECS = [{"key": "Stack", "value": "arch1"}] # etiqueta para ECS (usa lowercase por limitación de ECS)
 TAG_SPECS = lambda resource_type: [{"ResourceType": resource_type, "Tags": TAGS}] # función para generar la estructura de tags necesaria en la creación de recursos (ej: VPC, subnets, security groups, etc)
+
+LOG_GROUPS = {
+    "postgres": "/ecs/gamestore-postgres",
+    "api":      "/ecs/gamestore-api",
+    "swagger":  "/ecs/gamestore-swagger",
+}
+LOG_RETENTION_DAYS = 30 
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -101,6 +109,25 @@ def get_task_public_ip(task):
     )
     eni_desc = ec2.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
     return eni_desc["NetworkInterfaces"][0]["Association"]["PublicIp"]
+
+def ensure_log_group(name: str):
+    """Crea el log group si no existe y aplica la política de retención."""
+    try:
+        logs.create_log_group(logGroupName=name, tags={"Stack": "arch1"})
+        print(f"  Log group creado: {name}")
+    except logs.exceptions.ResourceAlreadyExistsException:
+        print(f"  Log group ya existe: {name}")
+    logs.put_retention_policy(logGroupName=name, retentionInDays=LOG_RETENTION_DAYS)
+
+def log_config(service_name: str) -> dict:
+    return {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group":         LOG_GROUPS[service_name],
+            "awslogs-region":        REGION,
+            "awslogs-stream-prefix": "ecs",
+        },
+    }
 
 
 # ===========================================================================
@@ -315,7 +342,8 @@ ecs.register_task_definition(
             {"name": "POSTGRES_DB", "value": "gamestore"},
             {"name": "POSTGRES_USER", "value": "gamestore"},
             {"name": "POSTGRES_PASSWORD", "value": "gamestorepass"}
-        ]
+        ],
+        "logConfiguration": log_config("postgres"),
     }]
 )
 
@@ -367,7 +395,8 @@ ecs.register_task_definition(
         "environment": [{
             "name":  "DATABASE_URI",
             "value": f"postgresql://gamestore:gamestorepass@{postgres_ip}:5432/gamestore"
-        }]
+        }],
+        "logConfiguration": log_config("api"),
     }]
 )
 
@@ -458,7 +487,8 @@ ecs.register_task_definition(
     containerDefinitions=[{
         "name": "swagger",
         "image": f"{ECR_ROOT}/gamestore-swagger:latest",
-        "portMappings": [{"containerPort": 8080}]
+        "portMappings": [{"containerPort": 8080}],
+        "logConfiguration": log_config("swagger"),
     }]
 )
 

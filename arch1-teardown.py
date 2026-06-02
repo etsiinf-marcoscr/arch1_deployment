@@ -86,7 +86,7 @@ except ecs.exceptions.ClusterNotFoundException:
 
 
 # ===========================================================================
-# 4. Task definitions - desregistrar todas las revisiones
+# 4. Task definitions - desregistrar todas las revisiones y borarlas
 # ===========================================================================
 
 title("4. Task Definitions")
@@ -94,16 +94,35 @@ title("4. Task Definitions")
 for family in ["postgres", "api", "swagger"]:
     try:
         paginator = ecs.get_paginator("list_task_definitions")
-        arns = []
+
+        active_arns = []
         for page in paginator.paginate(familyPrefix=family, status="ACTIVE"):
-            arns.extend(page["taskDefinitionArns"])
-        for arn in arns:
+            active_arns.extend(page["taskDefinitionArns"])
+
+        for arn in active_arns:
             ecs.deregister_task_definition(taskDefinition=arn)
             ok(f"Task definition desregistrada: {arn.split('/')[-1]}")
-        if not arns:
-            skip(f"Task definitions familia {family}")
+
+        if not active_arns:
+            skip(f"Task definitions activas familia {family}")
+
+        inactive_arns = []
+        for page in paginator.paginate(familyPrefix=family, status="INACTIVE"):
+            inactive_arns.extend(page["taskDefinitionArns"])
+
+        for i in range(0, len(inactive_arns), 10):
+            batch = inactive_arns[i:i + 10]
+            resp = ecs.delete_task_definitions(taskDefinitions=batch)
+            for td in resp.get("taskDefinitions", []):
+                ok(f"Task definition borrada: {td['taskDefinitionArn'].split('/')[-1]}")
+            for failure in resp.get("failures", []):
+                print(f"  ! No se pudo borrar {failure['arn']}: {failure['reason']}")
+
+        if not inactive_arns:
+            skip(f"Task definitions inactivas familia {family}")
+
     except Exception as e:
-        print(f"  ! Error desregistrando {family}: {e}")
+        print(f"  ! Error procesando familia {family}: {e}")
 
 
 # ===========================================================================
